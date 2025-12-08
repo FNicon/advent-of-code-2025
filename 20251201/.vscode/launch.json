@@ -1,0 +1,68 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "type": "lua-local",
+        "request": "launch",
+        "name": "JProf Viewer",
+        "cwd": "${workspaceFolder}\\debug-viewer\\lib\\jprof",
+        "program": {
+          "command": "love"
+        },
+        "args": [
+          ".",
+          "listen"
+        ],
+      },
+      {
+        "type": "lua-local",
+        "request": "launch",
+        "name": "Debug",
+        "program": {
+          "command": "love"
+        },
+        "args": [
+          ".",
+          "debug",
+          "1"
+        ],
+      },
+      {
+        "type": "lua-local",
+        "request": "launch",
+        "name": "Debug Profiler",
+        "program": {
+          "command": "love"
+        },
+        "args": [
+          ".",
+          "debug",
+          "lurker",
+          "jprof",
+          "lovebird",
+          "overlay"
+        ],
+      },
+      {
+        "type": "lua-local",
+        "request": "launch",
+        "name": "Release",
+        "program": {
+          "command": "love"
+        },
+        "args": [
+          ".",
+        ],
+      },
+    ],
+    "compounds": [
+      {
+        "name": "Debug All",
+        "configurations": ["JProf Viewer", "Debug Profiler"],
+        "stopAll": true
+      }
+    ]
+}
