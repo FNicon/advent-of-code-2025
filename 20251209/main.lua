@@ -21,9 +21,14 @@ end
 local function calculate_distance(pos1, pos2)
   return math.sqrt(
     (pos1[1] - pos2[1])^2 +
-    (pos1[2] - pos2[2])^2 +
-    (pos1[3] - pos2[3])^2
+    (pos1[2] - pos2[2])^2
   )
+end
+
+local function calculate_area(pos1, pos2)
+  return
+    (math.abs(pos1[1] - pos2[1]) + 1) *
+    (math.abs(pos1[2] - pos2[2]) + 1)
 end
 
 local function get_key(node1, node2)
@@ -68,43 +73,132 @@ local function update_min_distance(check_distance, current_min_distance, prev_mi
   return current_min_distance, is_need_update
 end
 
-local function search_pair(pos_tbl, tbl_distance, prev_min_distance)
-  local _tbl_distance = tbl_distance or {}
-  -- local new_pos_tbl = {}
-  local min_distance
-  local is_min_need_update = false
+local function update_max_distance(check_distance, current_max_distance, prev_max_distance)
+  local is_need_update = false
+  if (current_max_distance) then
+    if (prev_max_distance) then
+      if (check_distance < prev_max_distance) then
+        if (current_max_distance < check_distance) then
+          current_max_distance = check_distance
+          is_need_update = true
+        else
+
+        end
+      else
+
+      end
+    else
+      if (current_max_distance < check_distance) then
+        current_max_distance = check_distance
+        is_need_update = true
+      else
+
+      end
+    end
+  else
+    if (prev_max_distance) then
+      if (check_distance < prev_max_distance) then
+        current_max_distance = check_distance
+        is_need_update = true
+      else
+
+      end
+    else
+      current_max_distance = check_distance
+      is_need_update = true
+    end
+  end
+  return current_max_distance, is_need_update
+end
+
+
+local function search_pair(pos_tbl, tbl_calc, prev_max_calc)
+  local _tbl_calc = tbl_calc or {}
+  local max_calc
+  local is_max_need_update = false
   local pair_key
   for k, pos1 in pairs(pos_tbl) do
     for l, pos2 in pairs(pos_tbl) do
       if (k ~= l) then
         local key1, key2 = get_key(k, l)
         local check_distance
-        if (_tbl_distance[key1]) then
-          if (_tbl_distance[key1][key2]) then
-            check_distance = _tbl_distance[key1][key2]
+        if (_tbl_calc[key1]) then
+          if (_tbl_calc[key1][key2]) then
+            check_distance = _tbl_calc[key1][key2]
           else
-            check_distance = calculate_distance(pos1, pos2)
-            _tbl_distance[key1][key2] = check_distance
+            check_distance = calculate_area(pos1, pos2)
+            _tbl_calc[key1][key2] = check_distance
           end
         else
-          check_distance = calculate_distance(pos1, pos2)
-          _tbl_distance[key1] = {}
-          _tbl_distance[key1][key2] = check_distance
+          check_distance = calculate_area(pos1, pos2)
+          _tbl_calc[key1] = {}
+          _tbl_calc[key1][key2] = check_distance
         end
 
-        min_distance, is_min_need_update = update_min_distance(check_distance, min_distance, prev_min_distance)
-        if (is_min_need_update) then
+        max_calc, is_max_need_update = update_max_distance(check_distance, max_calc, prev_max_calc)
+        if (is_max_need_update) then
           pair_key = {key1, key2}
         end
       end
     end
   end
-  -- for k, v in pairs(pos_tbl) do
-  --   if (k ~= pair_key[1] and k ~= pair_key[2]) then
-  --     new_pos_tbl[k] = v
-  --   end
-  -- end
-  return pos_tbl, _tbl_distance, pair_key, min_distance
+  return pos_tbl, _tbl_calc, pair_key, prev_max_calc
+end
+
+local function search_pair2(pos_tbl, tbl_calc, prev_max_calc)
+  local _tbl_calc = tbl_calc or {}
+  local max_calc
+  local is_max_need_update = false
+  local pair_key
+  local calc_key = {}
+  for k, pos1 in pairs(pos_tbl) do
+    for l, pos2 in pairs(pos_tbl) do
+      if (k ~= l) then
+        local key1, key2 = get_key(k, l)
+        local check_distance
+        if (_tbl_calc[key1]) then
+          if (_tbl_calc[key1][key2]) then
+            check_distance = _tbl_calc[key1][key2]
+          else
+            check_distance = calculate_area(pos1, pos2)
+            _tbl_calc[key1][key2] = check_distance
+          end
+        else
+          check_distance = calculate_area(pos1, pos2)
+          _tbl_calc[key1] = {}
+          _tbl_calc[key1][key2] = check_distance
+        end
+
+        max_calc, is_max_need_update = update_max_distance(check_distance, max_calc, prev_max_calc)
+        if (is_max_need_update) then
+          pair_key = {key1, key2}
+        end
+      end
+    end
+  end
+  for k, v in pairs(_tbl_calc) do
+    for l, w in pairs(v) do
+      local p1, p2 = get_key(k, l)
+      if (p1 <= 249 and p2 == 249) then
+        if (w < 1658952126 and w > 1482564371) then
+          if (calc_key[w] == nil) then
+            calc_key[w] = { [1] = {k, l} }
+          else
+            table.insert(calc_key[w], {k, l})
+          end
+        end
+      elseif (p1 == 250 and p2 >= 250 and p1 <= 495 and p2 <= 495) then
+        if (w < 1658952126 and w > 1482564371) then
+          if (calc_key[w] == nil) then
+            calc_key[w] = { [1] = {k, l} }
+          else
+            table.insert(calc_key[w], {k, l})
+          end
+        end
+      end
+    end
+  end
+  return pos_tbl, _tbl_calc, pair_key, max_calc
 end
 
 local function is_has(tbl1, tbl2)
@@ -370,7 +464,7 @@ end
 
 local function connect_till_all(pos_tbl, all_node_count)
   local pair_key
-  local prev_min_distance
+  local prev_max_distance
   local tbl_distance = {}
   local new_pos_tbl = {}
   for k, v in pairs(pos_tbl) do
@@ -379,32 +473,62 @@ local function connect_till_all(pos_tbl, all_node_count)
       new_pos_tbl[k][l] = w
     end
   end
-  local unique_node = {}
-  local unique_count = 0
-  while unique_count ~= all_node_count do
-    new_pos_tbl, tbl_distance, pair_key, prev_min_distance = search_pair(new_pos_tbl, tbl_distance, prev_min_distance)
-    unique_node[pair_key[1]] = 1
-    unique_node[pair_key[2]] = 1
-    unique_count = 0
-    for k, v in pairs(unique_node) do
-      unique_count = unique_count + 1
+  new_pos_tbl, tbl_distance, pair_key, prev_max_distance = search_pair(new_pos_tbl, tbl_distance, prev_max_distance)
+  return prev_max_distance
+end
+
+local function generate_bound(pos_tbl)
+  local bound_tbl = {}
+  for k, p1 in pairs(pos_tbl) do
+    for l, p2 in pairs(pos_tbl) do
+      if (k ~= l) then
+        local x1 = p1[1]
+        local y1 = p1[2]
+        local x2 = p2[1]
+        local y2 = p2[2]
+
+        if (x1 == x2) then
+          if (bound_tbl[k]) then
+            table.insert(bound_tbl[k], l)
+          else
+            bound_tbl[k] = {l}
+          end
+        elseif (y1 == y2) then
+          if (bound_tbl[k]) then
+            table.insert(bound_tbl[k], l)
+          else
+            bound_tbl[k] = {l}
+          end
+
+        end
+      end
     end
-    if (unique_count == all_node_count) then
-      print("LAST NODE : ", pair_key[1], pair_key[2], pos_tbl[pair_key[1]][1], pos_tbl[pair_key[2]][1])
-    end
-    print(unique_count)
   end
-  local x_mul = pos_tbl[pair_key[1]][1] * pos_tbl[pair_key[2]][1]
-  return x_mul
+  return bound_tbl
+end
+
+local function connect_till_all2(pos_tbl, all_node_count)
+  local pair_key
+  local prev_max_distance
+  local tbl_distance = {}
+  local new_pos_tbl = {}
+  for k, v in pairs(pos_tbl) do
+    new_pos_tbl[k] = {}
+    for l, w in pairs(v) do
+      new_pos_tbl[k][l] = w
+    end
+  end
+  local bound_table = generate_bound(pos_tbl)
+  new_pos_tbl, tbl_distance, pair_key, prev_max_distance = search_pair2(new_pos_tbl, tbl_distance, prev_max_distance)
+  return prev_max_distance
 end
 
 
 local function q1()
   local filename = "input.txt"
-  local n_count = 1000
   local line_count = 0
   local total = 0
-  local junction_box_pos = {}
+  local box_pos = {}
   for line in rlines(filename) do
     line_count = line_count + 1
     local col_count = 1
@@ -413,12 +537,118 @@ local function q1()
       position[col_count] = tonumber(num)
       col_count = col_count + 1
     end
-    junction_box_pos[line_count] = position
+    box_pos[line_count] = position
   end
 
-  total = connect_till_all(junction_box_pos, n_count)
+  total = connect_till_all(box_pos, 1)
 
   return total
 end
 
-print(q1())
+local function q2()
+  local filename = "input.txt"
+  local line_count = 0
+  local total = 0
+  local box_pos = {}
+
+  for line in rlines(filename) do
+    line_count = line_count + 1
+    local col_count = 1
+    local position = {}
+    for num in line:gmatch("[^,]+") do
+      position[col_count] = tonumber(num)
+      col_count = col_count + 1
+    end
+    box_pos[line_count] = position
+  end
+
+  -- local tsv = io.open ("output.tsv", "w+")
+  -- if (tsv ~= nil) then
+  --   tsv:write("eruptions\twaiting\n");
+  --   for k, p1 in pairs(box_pos) do
+  --     tsv:write(string.format("%s\t%s\n", p1[1], p1[2]))
+  --   end
+  -- end
+
+  local bound = generate_bound(box_pos)
+  -- for k, v in pairs(bound) do
+  --   if (#v > 2) then
+  --     -- print(k, v)
+  --   end
+  --   if (k == 1) then
+  --     for i=#v, 1, -1 do
+  --       if (v[i] ~= 496 and v[i] ~= 2) then
+  --         -- table.remove(v, i)
+  --       end
+  --     end
+  --   elseif (k == 123) then
+  --     for i=#v, 1, -1 do
+  --       if (v[i] ~= 122 and v[i] ~= 124) then
+  --         -- table.remove(v, i)
+  --       end
+  --     end
+  --   elseif (k == 124) then
+  --     for i=#v, 1, -1 do
+  --       if (v[i] ~= 123 and v[i] ~= 125) then
+  --         -- table.remove(v, i)
+  --       end
+  --     end
+  --   elseif (k == 248) then
+  --     for i=#v, 1, -1 do
+  --       if (v[i] ~= 247 and v[i] ~= 249) then
+  --         -- table.remove(v, i)
+  --       end
+  --     end
+  --   elseif (k == 249) then
+  --     for i=#v, 1, -1 do
+  --       if (v[i] ~= 248 and v[i] ~= 250) then
+  --         -- table.remove(v, i)
+  --       end
+  --     end
+  --   elseif (k == 375) then
+  --     for i=#v, 1, -1 do
+  --       if (v[i] ~= 374 and v[i] ~= 376) then
+  --         -- table.remove(v, i)
+  --       end
+  --     end
+  --   elseif (k == 376) then
+  --     for i=#v, 1, -1 do
+  --       if (v[i] ~= 375 and v[i] ~= 377) then
+  --         -- table.remove(v, i)
+  --       end
+  --     end
+  --   elseif (k == 496) then
+  --     for i=#v, 1, -1 do
+  --       if (v[i] ~= 1 and v[i] ~= 495) then
+  --         -- table.remove(v, i)
+  --       end
+  --     end
+  --   end
+  -- end
+  -- local links = io.open ("link.json", "w+")
+  -- if (links ~= nil) then
+  --   links:write("[\n");
+  --   for p1, v in pairs(bound) do
+  --     for l, p2 in pairs(v) do
+  --       links:write(string.format('{"source":"%s","target":"%s", "value":2},\n', p1, p2))
+  --     end
+  --   end
+  --   links:write("]");
+  -- end
+
+  -- local nodes = io.open ("node.json", "w+")
+  -- if nodes ~= nil then
+  --   nodes:write("[\n");
+  --   for k, v in pairs(box_pos) do
+  --     nodes:write(string.format('{"id":"%s", "radius":1, "group":"A", "x":%d, "y": %d},\n', k, v[1], v[2]))
+  --   end
+  --   nodes:write("]");
+  -- end
+  total = connect_till_all2(box_pos, 1)
+
+  return total
+end
+
+
+
+print(q2())

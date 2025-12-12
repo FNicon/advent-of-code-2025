@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<div id="container"></div>
+<script src="d3.js"></script>
+<script type="module">
+
+async function chart() {
+  // Specify the dimensions of the chart.
+  const width = 1000;
+  const height = 1000;
+
+  const marginTop = 20;
+  const marginRight = 30;
+  const marginBottom = 30;
+  const marginLeft = 40;
+
+  // const faithful = await d3.tsv("output.tsv");
+  const link_data = await d3.json("link.json");
+  const node_data = await d3.json("node.json");
+
+  const links = link_data.map(d => ({...d}));
+  const nodes = node_data.map(d => ({...d}));
+
+  // Create a simulation with several forces.
+  const simulation = d3.forceSimulation(nodes)
+      .force("link", d3.forceLink(links).id(d => d.id).id(d => d.id).distance(0).strength(0))
+      .force("charge", d3.forceManyBody().strength(0))
+      .force("x", d3.forceX())
+      .force("y", d3.forceY());
+
+  // Create the horizontal and vertical scales.
+  const x = d3.scaleLinear()
+      .domain(d3.extent(nodes, d => d.x)).nice()
+      .rangeRound([marginLeft, width - marginRight]);
+
+  const y = d3.scaleLinear()
+      .domain(d3.extent(nodes, d => d.y)).nice()
+      .rangeRound([height - marginBottom, marginTop]);
+
+  // Compute the density contours.
+  const contours = d3.contourDensity()
+      .x(d => x(d.x))
+      .y(d => y(d.y))
+      .size([width, height])
+      .bandwidth(30)
+      .thresholds(30)
+    (nodes);
+
+  // Create the SVG container.
+  const svg = d3.create("svg")
+      .attr("width", width)
+      .attr("height", height)
+      .attr("viewBox", [0, 0, width, height])
+      .attr("style", "max-width: 100%; height: auto;");
+
+  // Append the axes.
+  svg.append("g")
+      .attr("transform", `translate(0,${height - marginBottom})`)
+      .call(d3.axisBottom(x).tickSizeOuter(0))
+      .call(g => g.select(".domain").remove())
+      .call(g => g.select(".tick:last-of-type text").clone()
+        .attr("y", -3)
+        .attr("dy", null)
+        .attr("font-weight", "bold")
+        .text("X"));
+
+  svg.append("g")
+    .attr("transform", `translate(${marginLeft},0)`)
+    .call(d3.axisLeft(y).tickSizeOuter(0))
+    .call(g => g.select(".domain").remove())
+    .call(g => g.select(".tick:last-of-type text").clone()
+        .attr("x", 3)
+        .attr("text-anchor", "start")
+        .attr("font-weight", "bold")
+        .text("Y"));
+
+  // Append the contours.
+  svg.append("g")
+      .attr("fill", "none")
+      .attr("stroke", "steelblue")
+      .attr("stroke-linejoin", "round")
+    .selectAll()
+    .data(contours)
+    .join("path")
+      .attr("stroke-width", (d, i) => i % 5 ? 0.25 : 1)
+      .attr("d", d3.geoPath());
+
+  function draw(context) {
+    console.log(context);
+    context.moveTo(10, 10);
+    context.lineTo(100, 100);
+    return context;
+  }
+
+  // Add a line for each link, and a circle for each node.
+  const link = svg.append("g")
+      .attr("stroke", "#00FF00")
+      .attr("stroke-opacity", 0.6)
+    .selectAll("line")
+    .data(links)
+    .join("line")
+      .attr("stroke-width", d => Math.sqrt(d.value))
+      // .attr("d", draw(d3.path()))
+      ;
+  console.log(links)
+  // Append the lines.
+  // const line = d3.line()
+  //   .defined(d => !isNaN(d.close))
+  //   .x(d => links[1].source)
+  //   .y(d => )
+  //   .x(([key, value]) => links.get(key)(value))
+  //   .y(([key]) => y(key));
+
+  // svg.append("g")
+  //   .attr("stroke", "#fff")
+  //   .attr("stroke-width", 1.5)
+  // .selectAll("circle")
+  // .data(nodes)
+  // .join("circle")
+  //   .attr("r", 5)
+  //   .attr("fill", d => color(d.group));
+
+  // Append dots.
+  const node = svg.append("g")
+      .attr("stroke", "white")
+    .selectAll()
+    .data(nodes)
+    .join("circle")
+      .attr("cx", d => x(d.x))
+      .attr("cy", d => y(d.y))
+      .attr("r", 2);
+
+  node.append("title").text(d => d.id);
+
+  // Set the position attributes of links and nodes each time the simulation ticks.
+  simulation.on("tick", () => {
+      link
+          .attr("x1", d => d.source.x)
+          .attr("y1", d => d.source.y)
+          .attr("x2", d => d.target.x)
+          .attr("y2", d => d.target.y);
+
+  // //   node
+  // //       .attr("cx", d => d.x)
+  // //       .attr("cy", d => d.y);
+  });
+
+  return svg.node();
+}
+
+container.append(await chart());
+
+</script>
