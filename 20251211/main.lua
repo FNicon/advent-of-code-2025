@@ -196,79 +196,155 @@ local function is_via(tracked, via)
   return via_count, is_via_found
 end
 
--- local function traverse_via(graph, current, via, target)
---   local tracked = {}
---   local choices = graph[current]
---   local new_current = current
---   local new_tracked = {}
---   local clone_tracked = {}
---   local to_check_track
---   local is_focus_on_via = false
---   local via_count_path, is_via_found
+local function filter_via(tracked, via_count)
+  for path, v in pairs(via_count) do
+    if (v > 0) then
 
---   tracked = diverge_track(new_current, choices, target)
---   while (not is_same_keys(tracked, clone_tracked)) do
---     via_count_path, is_via_found = is_via(tracked, via)
---     if (is_via_found or is_focus_on_via) then
---       is_focus_on_via = true
---       for via_path, via_count in pairs(via_count_path) do
---         if (via_count > 0) then
---           -- for track_path, reach_target in pairs(tracked) do
---             if (reach_target == 0) then
---               local last_node, deep_count  = get_last_node(via_path)
---               local current_choices = graph[last_node]
---               to_check_track = diverge_track(via_path, current_choices, target)
---               insert(new_tracked, to_check_track)
---               print(deep_count, via_path)
---             end
---           -- end
---           clone_tracked = clone_track(tracked)
---           tracked = merge_tracked(tracked, new_tracked)
---         else
---           print(via_count, via_path)
---         end
---       end
---     else
---       for track_path, reach_target in pairs(tracked) do
---         if (reach_target == 0) then
---           local last_node, deep_count  = get_last_node(track_path)
---           local current_choices = graph[last_node]
---           to_check_track = diverge_track(track_path, current_choices, target)
---           insert(new_tracked, to_check_track)
---           print(deep_count, track_path)
---         end
---       end
---       clone_tracked = clone_track(tracked)
---       tracked = merge_tracked(tracked, new_tracked)
---     end
---   end
---   return tracked, count_found_target(tracked), is_via(tracked, via)
--- end
+    end
+  end
+end
 
-local function traverse_via(graph, current, targets)
+local function is_stuck(path, is_reach_target, deep)
+  if (is_reach_target == 0) then
+    local last_node, deep_count  = get_last_node(path)
+    if (deep_count < deep) then
+      return true
+    end
+  end
+  return false
+end
+
+local function is_direct_choice_exist(choices, vias, target)
+  if (choices) then
+    for cid, choice in pairs(choices) do
+      if (choice == target) then
+        return true
+      else
+        for via_id, via in pairs(vias) do
+          if (via == choice) then
+            return true
+          end
+        end
+      end
+    end
+  end
+  return false
+end
+
+local function direct_track(current, choices, vias, target)
+  local tracked = {}
+  if (choices) then
+    for choice_id, node in pairs(choices) do
+      if (node == target) then
+        local path = format("%s %s", current, node)
+        if (not is_traversed(current, node)) then
+          tracked[path] = 1
+        else
+          print(path)
+        end
+      else
+        for via_id, via in pairs(vias) do
+          if (node == via) then
+            local path = format("%s %s", current, node)
+            if (not is_traversed(current, node)) then
+              tracked[path] = 0
+            else
+              print(path)
+            end
+          end
+        end
+      end
+    end
+  end
+  return tracked
+end
+
+local function traverse_via(graph, current, via, target)
   local tracked = {}
   local choices = graph[current]
   local new_current = current
   local new_tracked = {}
   local clone_tracked = {}
   local to_check_track
+  local is_focus_on_via = false
+  local via_count_path, is_via_found
+  local max_deep_count = 1
 
-  tracked = diverge_tracks(new_current, choices, targets)
+  tracked = diverge_track(new_current, choices, target)
   while (not is_same_keys(tracked, clone_tracked)) do
+    -- via_count_path, is_via_found = is_via(tracked, via)
+    -- if (is_via_found or is_focus_on_via) then
+    --   is_focus_on_via = true
+    --   for via_path, via_count in pairs(via_count_path) do
+    --     if (via_count > 0) then
+    --       -- for track_path, reach_target in pairs(tracked) do
+    --         if (reach_target == 0) then
+    --           local last_node, deep_count  = get_last_node(via_path)
+    --           local current_choices = graph[last_node]
+    --           to_check_track = diverge_track(via_path, current_choices, target)
+    --           insert(new_tracked, to_check_track)
+    --           print(deep_count, via_path)
+    --         end
+    --       -- end
+    --       clone_tracked = clone_track(tracked)
+    --       tracked = merge_tracked(tracked, new_tracked)
+    --     else
+    --       print(via_count, via_path)
+    --     end
+    --   end
+    -- else
     for track_path, reach_target in pairs(tracked) do
       if (reach_target == 0) then
         local last_node, deep_count  = get_last_node(track_path)
         local current_choices = graph[last_node]
-        to_check_track = diverge_tracks(track_path, current_choices, targets)
+        if is_direct_choice_exist(current_choices, via, target) then
+          to_check_track = direct_track(track_path, current_choices, via, target)
+        else
+          to_check_track = diverge_track(track_path, current_choices, target)
+        end
         insert(new_tracked, to_check_track)
-        print(deep_count, track_path)
+        if (deep_count > max_deep_count) then
+          max_deep_count = deep_count
+        end
+        print(max_deep_count, deep_count, track_path)
       end
     end
     clone_tracked = clone_track(tracked)
     tracked = merge_tracked(tracked, new_tracked)
+    for path, reach_target in pairs(tracked) do
+      if (is_stuck(path, reach_target, max_deep_count + 1)) then
+        tracked[path] = nil
+      end
+    end
+    -- end
   end
-  return tracked, count_found_target(tracked)
+  return tracked, count_found_target(tracked), is_via(tracked, via)
 end
+
+-- local function traverse_via(graph, current, via, targets)
+--   local tracked = {}
+--   local choices = graph[current]
+--   local new_current = current
+--   local new_tracked = {}
+--   local clone_tracked = {}
+--   local to_check_track
+
+--   tracked = diverge_tracks(new_current, choices, targets)
+--   while (not is_same_keys(tracked, clone_tracked)) do
+--     for track_path, reach_target in pairs(tracked) do
+--       if (reach_target == 0) then
+--         local last_node, deep_count  = get_last_node(track_path)
+--         local current_choices = graph[last_node]
+--         to_check_track = diverge_tracks(track_path, current_choices, targets)
+--         insert(new_tracked, to_check_track)
+--         print(deep_count, track_path)
+--       end
+--     end
+--     clone_tracked = clone_track(tracked)
+--     tracked = merge_tracked(tracked, new_tracked)
+--   end
+--   return tracked, count_found_target(tracked)
+-- end
 
 local function read_input(filename)
   local graph = {}
@@ -328,16 +404,16 @@ end
 local function q2()
   local filename = "input.txt"
   local graph, graph_out = read_input(filename)
-  -- local tracked, track_count = traverse_via(graph, "svr", {"fft", "dac"})
+  local tracked, track_count, via_count, is_via_found = traverse_via(graph, "svr", {"fft", "dac"}, "out")
   -- print(tracked, track_count)
-  local tracked_fft, track_count_fft = traverse(graph_out, "fft", "svr")
-  local tracked_dac, track_count_dac = traverse(graph_out, "dac", "svr")
+  -- local tracked_fft, track_count_fft = traverse_via(graph, "svr", "fft")
+  -- local tracked_dac, track_count_dac = traverse(graph_out, "dac", "svr")
   local count = 0
-  -- for k, v in pairs(via_count) do
-  --   if v == 2 then
-  --     count = count + 1
-  --   end
-  -- end
+  for k, v in pairs(via_count) do
+    if v == 2 then
+      count = count + 1
+    end
+  end
   return count
 end
 
